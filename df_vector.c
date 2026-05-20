@@ -622,12 +622,13 @@ int df_vector_erase_range(DF_CVECTOR *in_vec, size_t pos_start, size_t pos_end)
 			elem = (void*)((char*)in_vec->data + i * in_vec->elem_size);
 			in_vec->destruct(elem);
 		}
-		
-		
 	}
 	else 
 	{
-		
+		size_t num_bits = delta * in_vec->elem_size;
+		void *op = in_vec->data + in_vec->elem_size * pos_end;
+		void *np = in_vec->data * in_vec->elem_size * pos_start;
+		memmove(np, op in_vec->elem_size * (in_vec-vec_size - pos_end -1));
 	}
 
 	

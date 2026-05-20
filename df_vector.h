@@ -182,7 +182,8 @@ void df_vector_pop_back(DF_CVECTOR *in_vec);
 int df_vector_insert(DF_CVECTOR *in_vec, const size_t pos, const void *src);
 
 /* Changes the capacity to match the size of the vector.
-   In the case where the function is called on a vector with size == 0, then it is reallocated to capacity 1.
+   In the case where the function is called on a vector with size == 0,
+   then it is reallocated to capacity 1.
 	Return Values
 	0 - Failure
 	1 - Success */
