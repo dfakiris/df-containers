@@ -1,4 +1,4 @@
-#include "df_vector.h"
+a#include "df_vector.h"
 
 static const size_t DF_VEC_INIT_SIZE = 1;
 
@@ -524,26 +524,16 @@ int df_vector_shrink_to_fit(DF_CVECTOR *in_vec)
 	if (!in_vec)
 		return 0;
 	
-	if (in_vec->vec_size == 0)
+
+	if (in_vec->construct)
 	{
-		void *newdata = realloc(in_vec -> data, in_vec -> elem_size);
-		if (!newdata)
-			return 0;
-		
-		in_vec -> data = newdata;
-		in_vec -> capacity = 1;
+
 	}
 	else
 	{
-		void *newdata = realloc(in_vec->data, in_vec->vec_size * in_vec->elem_size);
-		
-		if (!newdata)
-			return 0;
-		
-		in_vec->data = newdata;
-		in_vec->capacity = in_vec->vec_size;
+
 	}
-	
+
 	return 1;
 }
 
