@@ -523,16 +523,41 @@ int df_vector_shrink_to_fit(DF_CVECTOR *in_vec)
 {
 	if (!in_vec)
 		return 0;
-	
 
-	if (in_vec->construct)
+	size_t new_cap = (in_vec->vec_size == 0) ? 1 : in_vec->vec_size;
+
+	if (in_vec->capacity == new_cap)
+		return 1;
+
+	if (in_vec->construct_move)
 	{
+		void *temp = malloc(new_cap * in_vec->elem_size);
 
+		if (!temp)
+			return 0;
+
+		for (size_t i = 0; i < in_vec->vec_size; i++)
+		{
+			void *src = (char*)in_vec->data + i * in_vec->elem_size;
+			void *dst = (char*)temp + i * in_vec->elem_size;
+			in_vec->construct_move(dst, src);
+			in_vec->destruct(src);
+		}
+
+		free(in_vec->data);
+		in_vec->data = temp;
 	}
 	else
 	{
+		void *newdata = realloc(in_vec->data, new_cap * in_vec->elem_size);
 
+		if (!newdata)
+			return 0;
+
+		in_vec->data = newdata;
 	}
+
+	in_vec->capacity = new_cap;
 
 	return 1;
 }
