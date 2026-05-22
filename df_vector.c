@@ -1,8 +1,33 @@
-a#include "df_vector.h"
+#include "df_vector.h"
 
 static const size_t DF_VEC_INIT_SIZE = 1;
 
 static const size_t DF_VEC_RESIZE_FACTOR = 2;
+
+struct DF_CVECTOR
+{
+	/*
+	 *	data		content of vector
+	 *	vec_size	number of elements stored
+	 *	capacity	current number of elements allocated to memory
+	 *	elem_size	element size in bytes
+	 *
+	 *	construct			Default constructor
+	 *	construct_copy		Copy constructor
+	 *	construct_move		Move constructor
+	 *	destruct			Destructor
+	 */
+
+	void* data;
+	size_t vec_size;
+	size_t capacity;
+	size_t elem_size;
+
+	void (*construct)(void *elem);
+	void (*construct_copy) (void *elem, const void* src);
+	void (*construct_move) (void *dest, void *src);
+	void (*destruct) (void *elem);
+};
 
 /* Destructor. Used to safely set up the vector object for deallocation */
 static void df_vector_destruct(void *ptr)
@@ -48,31 +73,6 @@ static void df_vector_construct_default(void *ptr)
 	vec->construct_move = df_vector_move;
 	vec->destruct = df_vector_destruct;
 }
-
-struct DF_CVECTOR
-{
-	/*
-	data		content of vector
-	vec_size	number of elements stored 
-	capacity	current number of elements allocated to memory 
-	elem_size	element size in bytes 
-	
-	construct			Default constructor
-	construct_copy		Copy constructor
-	construct_move		Move constructor
-	destruct			Destructor
-	*/
-	
-	void* data;
-	size_t vec_size;
-	size_t capacity;
-	size_t elem_size;
-	
-	void (*construct)(void *elem);
-	void (*construct_copy) (void *elem, const void* src);
-	void (*construct_move) (void *dest, void *src);
-	void (*destruct) (void *elem);
-};
 
 DF_CVECTOR* df_create_vector(const size_t in_elemsize, const size_t in_capacity,
 							void (*in_construct)(void *in_elem),
@@ -187,74 +187,80 @@ void df_delete_vector(DF_CVECTOR **in_vec)
 
 }
 
-void df_vector_copy(DF_CVECTOR *dst, const DF_CVECTOR *src)
+void df_vector_copy(void *dst, const void *src)
 {
 	if (!dst || !src)
 		return ;
+
+	DF_CVECTOR *dest = (DF_CVECTOR*)dst;
+	DF_CVECTOR *source = (DF_CVECTOR*)src;
 	
-	dst->elem_size = src->elem_size;
+	dest->elem_size = source->elem_size;
 	
-	dst->capacity = src->capacity;
+	dest->capacity = source->capacity;
 	
-	dst->vec_size = src->vec_size;
+	dest->vec_size = source->vec_size;
 	
-	dst->data = NULL;
+	dest->data = NULL;
 	
-	if (src->data)
+	if (source->data)
 	{
-		dst->data = malloc(dst->elem_size * dst->capacity);
-		if (!dst->data)
+		dest->data = malloc(dest->elem_size * dest->capacity);
+		if (!dest->data)
 		{
-			dst->vec_size = 0;
-			dst->elem_size = 0;
-			dst->capacity = 0;
+			dest->vec_size = 0;
+			dest->elem_size = 0;
+			dest->capacity = 0;
 			return;
 		}
 	}
 	
-	dst->construct = src->construct;
-	dst->construct_copy = src->construct_copy;
-	dst->construct_move = src->construct_move;
-	dst->destruct = src->destruct;
+	dest->construct = source->construct;
+	dest->construct_copy = source->construct_copy;
+	dest->construct_move = source->construct_move;
+	dest->destruct = source->destruct;
 	
-	if (src->construct_copy)
+	if (source->construct_copy)
 	{
-		if (dst->data)
+		if (dest->data)
 		{
-			void *op = src->data;
-			void *np = dst->data;
-			for (size_t i = 0; i < dst->vec_size; i++)
+			void *op = source->data;
+			void *np = dest->data;
+			for (size_t i = 0; i < dest->vec_size; i++)
 			{
-				dst->construct_copy(np, op);
+				dest->construct_copy(np, op);
 				
-				op = (char*)op + src->elem_size;
-				np = (char*)np + dst->elem_size;
+				op = (char*)op + source->elem_size;
+				np = (char*)np + dest->elem_size;
 			}
 		}
 	}
 	else
 	{
-		if (dst->data && dst->vec_size > 0)
-			memcpy(dst->data, src->data, dst->elem_size * dst->vec_size);
+		if (dest->data && dest->vec_size > 0)
+			memcpy(dest->data, source->data, dest->elem_size * dest->vec_size);
 	}
 }
 
-void df_vector_move(DF_CVECTOR *dst, DF_CVECTOR *src)
+void df_vector_move(void *dst, void *src)
 {
 	if (!dst || !src)
 		return;
 	
-	*dst = *src;
+	DF_CVECTOR *dest = (DF_CVECTOR*)dst;
+	DF_CVECTOR *source = (DF_CVECTOR*)src;
+
+	*dest = *source;
 	
-	src->elem_size = 0;
-	src->vec_size = 0;
-	src->capacity = 0;
-	src->data = NULL;
+	source->elem_size = 0;
+	source->vec_size = 0;
+	source->capacity = 0;
+	source->data = NULL;
 	
-	src->construct = NULL;
-	src->construct_copy = NULL;
-	src->construct_move = NULL;
-	src->destruct = NULL;
+	source->construct = NULL;
+	source->construct_copy = NULL;
+	source->construct_move = NULL;
+	source->destruct = NULL;
 }
 
 size_t df_vector_size(const DF_CVECTOR *in_vec)
