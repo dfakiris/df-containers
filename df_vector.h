@@ -93,10 +93,12 @@ v2.1 -
 	9. Fixed df_vector_shrink_to_fit. If vector size was 0, data was set to NULL. 
 		However, other functions such as push_back did not account for this state and therefore the code would break.
 		A minimum of 1 capacity is used in this case to preserve in_vec -> data in a valid state.
+
+v2.2 -
+	1. Added df_vector_erase_range
 	
 To do
 	1. Add insert_range()
-	2. Add erase_range()
 	
 */
 
@@ -186,7 +188,9 @@ int df_vector_insert(DF_CVECTOR *in_vec, const size_t pos, const void *src);
    then it is reallocated to capacity 1.
 	Return Values
 	0 - Failure
-	1 - Success */
+	1 - Success
+
+	WARNING - THIS DOESN'T CURRENTLY RESPECT OBJECT VS POD MODE */
 int df_vector_shrink_to_fit(DF_CVECTOR *in_vec);
 
 /* Clears vector. Does not affect capacity.
