@@ -204,7 +204,7 @@ int df_vector_erase(DF_CVECTOR *in_vec, size_t pos);
 /* Erases elements between pos_start and pos_end. 
 	* Inclusive of pos_start, but not inclusive of pos_end
 	* returns 1 if successful, 0 if not successful. */
-int df_vector_erase_range(DF_CVECTOR *in_vec, size_t pos_start, size_t pos_end);
+int df_vector_erase_range(DF_CVECTOR *in_vec, const size_t pos_start, const size_t pos_end);
 
 
 

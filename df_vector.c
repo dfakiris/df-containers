@@ -163,7 +163,7 @@ void df_init_inner_vector(DF_CVECTOR *in_vec, const size_t in_elemsize, const si
 	
 	if (in_vec->capacity > SIZE_MAX / in_vec->elem_size)
 	{
-		in_vec->data = NULL:
+		in_vec->data = NULL;
 		return;
 	}
 	
@@ -606,9 +606,9 @@ int df_vector_erase(DF_CVECTOR *in_vec, size_t pos)
 	return 1;
 }
 
-int df_vector_erase_range(DF_CVECTOR *in_vec, size_t pos_start, size_t pos_end)
+int df_vector_erase_range(DF_CVECTOR *in_vec, const size_t pos_start, const size_t pos_end)
 {
-	if (!in_vec || pos_start >= pos_end || pos_end >= in_vec->vec_size)
+	if (!in_vec || pos_start >= pos_end || pos_end > in_vec->vec_size)
 		return 0;
 	
 	size_t delta = pos_end - pos_start;
@@ -622,18 +622,32 @@ int df_vector_erase_range(DF_CVECTOR *in_vec, size_t pos_start, size_t pos_end)
 			elem = (void*)((char*)in_vec->data + i * in_vec->elem_size);
 			in_vec->destruct(elem);
 		}
+
+
+		for (size_t i = pos_end; i < in_vec->vec_size; i++)
+		{
+			void *op = (void*)((char*)in_vec->data + i * in_vec->elem_size);
+			void *np = (void*)((char*)in_vec->data + (i-delta) * in_vec->elem_size);
+
+			in_vec->construct_move(np,op);
+			in_vec->destruct(op);
+		}
+
+
 	}
 	else 
 	{
-		size_t num_bits = delta * in_vec->elem_size;
-		void *op = in_vec->data + in_vec->elem_size * pos_end;
-		void *np = in_vec->data * in_vec->elem_size * pos_start;
-		memmove(np, op in_vec->elem_size * (in_vec-vec_size - pos_end -1));
+		size_t num_bytes = in_vec->elem_size * (in_vec->vec_size - pos_end);
+		void *op = (void*)((char*)in_vec->data + in_vec->elem_size * pos_end);
+		void *np = (void*)((char*)in_vec->data + in_vec->elem_size * pos_start);
+		memmove(np, op, num_bytes);
+
+
 	}
 
+	in_vec->vec_size = in_vec->vec_size - delta;
 	
 	return 1;
 }
-
 
 /* End df_vector.c */
