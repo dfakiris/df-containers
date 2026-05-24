@@ -476,10 +476,16 @@ int df_vector_insert(DF_CVECTOR *in_vec, const size_t pos, const void *src)
 	if (!in_vec || pos > in_vec->vec_size)
 		return 0;
 	
-	// Protect against self insertion 
-	char tmp[in_vec->elem_size];
+	char *tmp = malloc(sizeof(char)*in_vec->elem_size);
+
+	if (!tmp)
+		return 0;
+
 	memcpy(tmp,src, in_vec->elem_size);
 	src = tmp;
+
+	free(tmp);
+
 	
 	// Grow as needed.
 	if (in_vec->vec_size==in_vec->capacity)

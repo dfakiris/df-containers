@@ -8,10 +8,9 @@
 #include <limits.h>
 
 /*
+Implementation of a vector object by Dimos Fakiris.
 
-Implementation of a vector class by Dimos Fakiris.
-
-Current version: v2.0
+Current version: v2.2
 
 v1.0 - base version. works aiight.
 
@@ -97,10 +96,12 @@ v2.1 -
 
 v2.2 -
 	1. Added df_vector_erase_range
+	2. df_vector_shrink_to_fit now respects object vs pod mode.
+	3. df_vector_insert - changed allocation of tmp to heap to prevent VLA issues on the stack.
 	
 To do
 	1. Add insert_range()
-	
+
 */
 
 typedef struct DF_CVECTOR DF_CVECTOR;
@@ -189,9 +190,7 @@ int df_vector_insert(DF_CVECTOR *in_vec, const size_t pos, const void *src);
    then it is reallocated to capacity 1.
 	Return Values
 	0 - Failure
-	1 - Success
-
-	WARNING - THIS DOESN'T CURRENTLY RESPECT OBJECT VS POD MODE */
+	1 - Success		*/
 int df_vector_shrink_to_fit(DF_CVECTOR *in_vec);
 
 /* Clears vector. Does not affect capacity.
