@@ -163,7 +163,7 @@ bool df_vector_empty(const DF_CVECTOR *in_vec);
 	Return values:
 		0: Could not resize;
 		1: No Fault - Resize works as requrested. */
-int df_vector_resize(DF_CVECTOR *in_vec, const size_t new_size);
+int df_vector_resize(DF_CVECTOR *in_vec, const size_t new_size, const void* params);
 
 /* Changes capacity to new_cap. If new_cap <= in_vec.capacity
 the function does nothing. 

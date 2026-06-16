@@ -54,9 +54,9 @@ const struct DF_CVECTOR_PARAMS DF_CVECTOR_CONSTRUCTOR_PARAMS =
 	.capacity = 1;
 	.elem_size = sizeof(struct DF_CVECTOR);
 	.construct = df_vector_construct;
-	.construct_copy =
-	.construct_move =
-	.destruct =
+	.construct_copy = df_vector_construct_copy;
+	.construct_move = df_vector_constuct_move;
+	.destruct = df_vector_destruct;
 };
 
 struct DF_CVECTOR
@@ -193,7 +193,7 @@ void df_delete_vector(DF_CVECTOR **in_vec)
 
 }
 
-void df_vector_copy(void *dst, const void *src)
+void df_vector_construct_copy(void *dst, const void *src)
 {
 	if (!dst || !src)
 		return ;
@@ -248,7 +248,7 @@ void df_vector_copy(void *dst, const void *src)
 	}
 }
 
-void df_vector_move(void *dst, void *src)
+void df_vector_construct_move(void *dst, void *src)
 {
 	if (!dst || !src)
 		return;
@@ -318,7 +318,7 @@ bool df_vector_empty(const DF_CVECTOR *in_vec)
 	return true;
 }
 
-int df_vector_resize(DF_CVECTOR *in_vec, const size_t new_size)
+int df_vector_resize(DF_CVECTOR *in_vec, const size_t new_size, const void *params)
 {
 	if (!in_vec || new_size > SIZE_MAX / in_vec->elem_size)
 		return 0;
@@ -341,7 +341,7 @@ int df_vector_resize(DF_CVECTOR *in_vec, const size_t new_size)
 		{
 			void *elem = (char*)in_vec->data + i * in_vec->elem_size;
 			if (in_vec->construct)
-				in_vec->construct(elem);
+				in_vec->construct(elem, params);
 			else
 				memset(elem, 0, in_vec->elem_size);
 		}
@@ -354,7 +354,7 @@ int df_vector_resize(DF_CVECTOR *in_vec, const size_t new_size)
 		{
 			void *elem = (char*)in_vec->data + in_vec->elem_size * i;
 			if (in_vec->construct)
-				in_vec->construct(elem);
+				in_vec->construct(elem, params);
 			else
 				memset(elem, 0, in_vec->elem_size);
 		}
@@ -586,7 +586,6 @@ int df_vector_shrink_to_fit(DF_CVECTOR *in_vec)
 
 	return 1;
 }
-
 
 int df_vector_clear(DF_CVECTOR *in_vec)
 {
