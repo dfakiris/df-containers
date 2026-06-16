@@ -19,7 +19,7 @@ v1.1 -
 		df_vector_resize()
 		df_vector_reserve()
 		df_vector_insert()
-	
+
 	2.	df_vector_resize() checks reallocation result.
 	
 	3.	df_vector_insert() checks reallocation result.
@@ -98,35 +98,38 @@ v2.2 -
 	1. Added df_vector_erase_range
 	2. df_vector_shrink_to_fit now respects object vs pod mode.
 	3. df_vector_insert - changed allocation of tmp to heap to prevent VLA issues on the stack.
+
+v2.3 -
+	1. default constructor signature has the ability to accept parameters.
+	2. default constructor code made into macro to make changes easier as the same code is used multiple times.
 	
 To do
 	1. Add insert_range()
+	2. Add a void* param to constructor signature.
 
 */
 
 typedef struct DF_CVECTOR DF_CVECTOR;
+
+typedef struct DF_CVECTOR_PARAMS DF_CVECTOR_PARAMS;
+
+extern const struct DF_CVECTOR_PARAMS DF_CVECTOR_CONSTRUCTOR_PARAMS;
 
 /* Creates vector. Returns NULL if vector creation fails. 
 	This object can operate in two modes. pod and object.
 	1. If the constructors & destructor are NULL, then only POD types should be used.
 	2. If the constructors & destructor are not NULL, then complex elements may be used.*/
 DF_CVECTOR* df_create_vector(const size_t in_elemsize, const size_t in_capacity,
-							void (*in_construct)(void *in_elem),
-							void (*in_construct_copy)(void *in_elem, const void* src),
-							void (*in_construct_move)(void *dest, void *src),
-							void (*in_destruct)(void *in_elem));
-
-DF_CVECTOR* df_create_vec_in_vec(const size_t in_capacity);
-
-/* Function to initialise the inner vector with the element size and capacity */
-void df_init_inner_vector(DF_CVECTOR *in_vec, const size_t in_elemsize, const size_t in_capacity,
-							void (*in_construct)(void *in_elem),
+							void (*in_construct)(void *in_elem, void *params),
 							void (*in_construct_copy)(void *in_elem, const void* src),
 							void (*in_construct_move)(void *dest, void *src),
 							void (*in_destruct)(void *in_elem));
 
 /* Deletes vector. Provides a safe delete path */
 void df_delete_vector(DF_CVECTOR **in_vec);
+
+/* Vector constructor */
+void df_vector_construct(void *ptr, void *params);
 
 /* Copy constructor. dst assumed to be allocated but 
    uninitialised memory. */

@@ -1,8 +1,63 @@
 #include "df_vector.h"
 
-static const size_t DF_VEC_INIT_SIZE = 1;
 
+/* Macro to avoid calling the constructor within df_create_vector
+ * and not have the same code written twice. */
+#define DF_CVECTOR_CONSTRUCT__(vec, elsize, cap, constr, constr_c, constr_m, destr){\
+	if (elsize == 0)																\
+		return;																		\
+	if ((constr || constr_c || constr_m || destr) && 								\
+		!(constr && constr_c && constr_m && destr))									\
+		return;																		\
+	vec->construct = constr;														\
+	vec->construct_copy = constr_c;													\
+	vec->construct_move = constr_m;													\
+	vec->destruct = destr;															\
+	vec->elem_size = elsize;														\
+	vec->vec_size = 0;																\
+	if (cap > 0)																	\
+		vec->capacity = cap;														\
+	else																			\
+		vec->capacity = DF_VEC_INIT_SIZE;											\
+	vec->data = malloc(vec->elem_size * vec->capacity);								\
+	if (!vec->data)																	\
+		vec->capacity = 0;															\
+}
+
+/* Destructor macro to keep the code cleaner as the destructor
+ * function and df_vector_delete use the same code */
+#define DF_CVECTOR_DESTRUCT__(vec) { }
+
+/* Global constants:
+ * DF_VEC_INIT_SIZE - initial size to be set to the vector if capacity is set to 0.
+ * DF_VEC_RESIZE_FACTOR - how quickly to grow vector */
+static const size_t DF_VEC_INIT_SIZE = 1;
 static const size_t DF_VEC_RESIZE_FACTOR = 2;
+
+struct DF_CVECTOR_PARAMS
+{
+	/* Parameter block used to pass the parameters for
+	 * creating a vector of vectors without exposing any
+	 * internal variables and breaking encapsulation */
+	size_t capacity;
+	size_t elem_size;
+
+	void (*construct) (void *elem, void* params);
+	void (*construct_copy) (void *elem, const void *src);
+	void (*construct_move) (void *dest, void *src);
+	void (*destruct) (void *elem);
+};
+
+/* parameters constant to pass */
+const struct DF_CVECTOR_PARAMS DF_CVECTOR_CONSTRUCTOR_PARAMS =
+{
+	.capacity = 1;
+	.elem_size = sizeof(struct DF_CVECTOR);
+	.construct = df_vector_construct;
+	.construct_copy =
+	.construct_move =
+	.destruct =
+};
 
 struct DF_CVECTOR
 {
@@ -23,7 +78,7 @@ struct DF_CVECTOR
 	size_t capacity;
 	size_t elem_size;
 
-	void (*construct)(void *elem);
+	void (*construct)(void *elem, void *params);
 	void (*construct_copy) (void *elem, const void* src);
 	void (*construct_move) (void *dest, void *src);
 	void (*destruct) (void *elem);
@@ -55,41 +110,37 @@ static void df_vector_destruct(void *ptr)
 }
 
 /* Vector constructor for the special of a vector-in-vector scenario */
-static void df_vector_construct_default(void *ptr)
+void df_vector_construct(void *ptr, void *params)
 {
+	if (!ptr || !params)
+		return ;
+
+	struct DF_CVECTOR_PARAMS *c_params = (struct DF_CVECTOR_PARAMS*)params;
+
+
 	struct DF_CVECTOR *vec = (struct DF_CVECTOR*)ptr;
-	
-	vec->elem_size = 0;
-	vec->vec_size = 0;
-	vec->capacity = 0;
-	vec->data = NULL;
-	
-	
-	/* WARNING: DO NOT CALL vec->construct WITHIN THIS FUNCTION TO AVOID RECURSION */
-	vec->construct = df_vector_construct_default; 
-	
-	
-	vec->construct_copy = df_vector_copy;
-	vec->construct_move = df_vector_move;
-	vec->destruct = df_vector_destruct;
+
+	DF_CVECTOR_CONSTRUCT__(vec,c_params->elem_size, c_params->capacity,
+						c_params->construct, c_params->construct_copy,
+						c_params->construct_move, c_params->destruct);
 }
 
 DF_CVECTOR* df_create_vector(const size_t in_elemsize, const size_t in_capacity,
-							void (*in_construct)(void *in_elem),
+							void (*in_construct)(void *in_elem, void *params),
 							void (*in_construct_copy)(void *in_elem, const void* src),
 							void (*in_construct_move)(void *dest, void *src),
 							void (*in_destruct)(void *in_elem))
 {
+	DF_CVECTOR* newvec = malloc(sizeof(DF_CVECTOR));
+
+	if (!newvec)
+		return NULL;
+
 	if (in_elemsize == 0)
 		return NULL;
 	
 	if ((in_construct || in_construct_copy || in_construct_move || in_destruct) && 
 		!(in_construct && in_construct_copy && in_construct_move && in_destruct))
-		return NULL;
-	
-	DF_CVECTOR* newvec = malloc(sizeof(DF_CVECTOR));
-	
-	if (!newvec)
 		return NULL;
 
 	
@@ -127,51 +178,6 @@ DF_CVECTOR* df_create_vector(const size_t in_elemsize, const size_t in_capacity,
 	
 	
 	return newvec;
-}
-
-DF_CVECTOR* df_create_vec_in_vec(const size_t in_capacity)
-{
-	return df_create_vector(sizeof(DF_CVECTOR), in_capacity,
-							df_vector_construct_default,
-							df_vector_copy,
-							df_vector_move,
-							df_vector_destruct);
-}
-
-void df_init_inner_vector(DF_CVECTOR *in_vec, const size_t in_elemsize, const size_t in_capacity,
-							void (*in_construct)(void *in_elem),
-							void (*in_construct_copy)(void *in_elem, const void* src),
-							void (*in_construct_move)(void *dest, void *src),
-							void (*in_destruct)(void *in_elem))
-{
-	if (!in_vec || in_elemsize == 0)
-		return;
-	
-	in_vec->construct = in_construct;
-	in_vec->construct_copy = in_construct_copy;
-	in_vec->construct_move = in_construct_move;
-	in_vec->destruct = in_destruct;
-	
-	in_vec->elem_size = in_elemsize;
-	in_vec->vec_size = 0;
-	
-	if (in_capacity > 0)
-		in_vec->capacity = in_capacity;
-	else
-		in_vec->capacity = DF_VEC_INIT_SIZE;
-	
-	
-	if (in_vec->capacity > SIZE_MAX / in_vec->elem_size)
-	{
-		in_vec->data = NULL;
-		return;
-	}
-	
-	in_vec->data = malloc(in_vec->elem_size * in_vec->capacity);
-	
-	if (!in_vec->data)
-		in_vec->capacity = 0;
-	
 }
 
 void df_delete_vector(DF_CVECTOR **in_vec)
@@ -484,17 +490,22 @@ int df_vector_insert(DF_CVECTOR *in_vec, const size_t pos, const void *src)
 	memcpy(tmp,src, in_vec->elem_size);
 	src = tmp;
 
-	free(tmp);
 
 	
 	// Grow as needed.
 	if (in_vec->vec_size==in_vec->capacity)
 	{
 		if (in_vec->capacity > SIZE_MAX/DF_VEC_RESIZE_FACTOR)
+		{
+			free(tmp);
 			return 0;
+		}
 		
 		if (!df_vector_reserve(in_vec, in_vec->capacity == 0 ? 1 : in_vec->capacity * DF_VEC_RESIZE_FACTOR))
+		{
+			free(tmp);
 			return 0; // reservation failed. Do not continue executing function.
+		}
 	}
 	
 	
@@ -526,6 +537,8 @@ int df_vector_insert(DF_CVECTOR *in_vec, const size_t pos, const void *src)
 		memcpy(op, src, in_vec->elem_size);
 	}
 	
+	free(tmp);
+
 	in_vec->vec_size++;
 	return 1;
 	
@@ -643,24 +656,20 @@ int df_vector_erase_range(DF_CVECTOR *in_vec, const size_t pos_start, const size
 	if (in_vec->destruct)
 	{
 		void *elem;
-		/* */
+		/* Destroy elements */
 		for (size_t i = pos_start; i <pos_end; i++)
 		{
 			elem = (void*)((char*)in_vec->data + i * in_vec->elem_size);
 			in_vec->destruct(elem);
 		}
-
-
+		/* Shift elements */
 		for (size_t i = pos_end; i < in_vec->vec_size; i++)
 		{
 			void *op = (void*)((char*)in_vec->data + i * in_vec->elem_size);
 			void *np = (void*)((char*)in_vec->data + (i-delta) * in_vec->elem_size);
-
 			in_vec->construct_move(np,op);
 			in_vec->destruct(op);
 		}
-
-
 	}
 	else 
 	{
@@ -668,8 +677,6 @@ int df_vector_erase_range(DF_CVECTOR *in_vec, const size_t pos_start, const size
 		void *op = (void*)((char*)in_vec->data + in_vec->elem_size * pos_end);
 		void *np = (void*)((char*)in_vec->data + in_vec->elem_size * pos_start);
 		memmove(np, op, num_bytes);
-
-
 	}
 
 	in_vec->vec_size = in_vec->vec_size - delta;
