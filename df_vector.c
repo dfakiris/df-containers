@@ -121,9 +121,6 @@ void df_vector_construct(void *ptr, void *params)
 	DF_CVECTOR_CONSTRUCT__(vec,c_params->elem_size, c_params->capacity,
 						c_params->construct, c_params->construct_copy,
 						c_params->construct_move, c_params->destruct);
-
-a:
-		return;
 }
 
 DF_CVECTOR* df_create_vector(const size_t in_elemsize, const size_t in_capacity,
