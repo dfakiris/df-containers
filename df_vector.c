@@ -9,6 +9,8 @@
 	if ((constr || constr_c || constr_m || destr) && 								\
 		!(constr && constr_c && constr_m && destr))									\
 		return;																		\
+	if (cap > SIZE_MAX / elsize)													\
+		return;																		\
 	vec->construct = constr;														\
 	vec->construct_copy = constr_c;													\
 	vec->construct_move = constr_m;													\
@@ -23,10 +25,6 @@
 	if (!vec->data)																	\
 		vec->capacity = 0;															\
 }
-
-/* Destructor macro to keep the code cleaner as the destructor
- * function and df_vector_delete use the same code */
-#define DF_CVECTOR_DESTRUCT__(vec) { }
 
 /* Global constants:
  * DF_VEC_INIT_SIZE - initial size to be set to the vector if capacity is set to 0.
@@ -46,17 +44,6 @@ struct DF_CVECTOR_PARAMS
 	void (*construct_copy) (void *elem, const void *src);
 	void (*construct_move) (void *dest, void *src);
 	void (*destruct) (void *elem);
-};
-
-/* parameters constant to pass */
-const struct DF_CVECTOR_PARAMS DF_CVECTOR_CONSTRUCTOR_PARAMS =
-{
-	.capacity = 1;
-	.elem_size = sizeof(struct DF_CVECTOR);
-	.construct = df_vector_construct;
-	.construct_copy = df_vector_construct_copy;
-	.construct_move = df_vector_constuct_move;
-	.destruct = df_vector_destruct;
 };
 
 struct DF_CVECTOR
@@ -84,8 +71,19 @@ struct DF_CVECTOR
 	void (*destruct) (void *elem);
 };
 
+/* parameters constant to pass */
+const struct DF_CVECTOR_PARAMS DF_CVECTOR_CONSTRUCTOR_PARAMS =
+{
+	.capacity = 1,
+	.elem_size = sizeof(struct DF_CVECTOR),
+	.construct = df_vector_construct,
+	.construct_copy = df_vector_construct_copy,
+	.construct_move = df_vector_construct_move,
+	.destruct = df_vector_destruct
+};
+
 /* Destructor. Used to safely set up the vector object for deallocation */
-static void df_vector_destruct(void *ptr)
+void df_vector_destruct(void *ptr)
 {
 	if (!ptr)
 		return;
@@ -115,7 +113,7 @@ void df_vector_construct(void *ptr, void *params)
 	if (!ptr || !params)
 		return ;
 
-	struct DF_CVECTOR_PARAMS *c_params = (struct DF_CVECTOR_PARAMS*)params;
+	const struct DF_CVECTOR_PARAMS *c_params = (struct DF_CVECTOR_PARAMS*)params;
 
 
 	struct DF_CVECTOR *vec = (struct DF_CVECTOR*)ptr;
@@ -123,6 +121,9 @@ void df_vector_construct(void *ptr, void *params)
 	DF_CVECTOR_CONSTRUCT__(vec,c_params->elem_size, c_params->capacity,
 						c_params->construct, c_params->construct_copy,
 						c_params->construct_move, c_params->destruct);
+
+a:
+		return;
 }
 
 DF_CVECTOR* df_create_vector(const size_t in_elemsize, const size_t in_capacity,
@@ -137,11 +138,17 @@ DF_CVECTOR* df_create_vector(const size_t in_elemsize, const size_t in_capacity,
 		return NULL;
 
 	if (in_elemsize == 0)
+	{
+		free(newvec);
 		return NULL;
+	}
 	
 	if ((in_construct || in_construct_copy || in_construct_move || in_destruct) && 
 		!(in_construct && in_construct_copy && in_construct_move && in_destruct))
+	{
+		free(newvec);
 		return NULL;
+	}
 
 	
 	newvec->construct = in_construct;

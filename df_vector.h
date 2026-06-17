@@ -131,12 +131,15 @@ void df_delete_vector(DF_CVECTOR **in_vec);
 /* Vector constructor */
 void df_vector_construct(void *ptr, void *params);
 
+/* Destrucotr function */
+void df_vector_destruct(void *ptr);
+
 /* Copy constructor. dst assumed to be allocated but 
    uninitialised memory. */
-void df_vector_copy(void *dst, const void *src);
+void df_vector_construct_copy(void *dst, const void *src);
 
 /* Move constructor. dst assumed to be uninitialised memory. */
-void df_vector_move(void *dst, void *src);
+void df_vector_construct_move(void *dst, void *src);
 
 /* Returns the number of elements */
 size_t df_vector_size(const DF_CVECTOR *in_vec);
