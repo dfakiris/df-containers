@@ -17,6 +17,16 @@ void df_sparse_matrix_construct_move(void *dst, const void *src);
 
 void df_sparse_matrix_destruct(void *ptr);
 
-int df_sparse_matrix_add_value(size_t row, size_t col, float val);
+size_t* df_sparse_matrix_at_row(DF_SPARSE_MATRIX *matrix, size_t pos);
+
+size_t* df_sparse_matrix_at_col(DF_SPARSE_MATRIX *matrix, size_t pos);
+
+float* df_sparse_matrix_at_val(DF_SPARSE_MATRIX* matrix, size_t pos);
+
+int df_sparse_matrix_push_back(size_t row, size_t col, float val);
+
+void df_sparse_matrix_pop_back(DF_SPARSE_MATRIX *matrix);
+
+int df_sparse_matrix_insert(DF_SPARSE_MATRIX *matrix, size_t pos, size_t row, size_t col, float val)
 
 #endif /* DF_SPARSE_MATRIX */
